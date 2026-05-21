@@ -2,13 +2,13 @@
 # Standards for Extending AI Agents
 
 AI agents can be extended in different ways.
-Two emerging standards are especially relevant for research software, data stewardship and reproducible workflows: [Agent Skills](https://agentskills.io/home) and the [Model Context Protocol](https://modelcontextprotocol.io/docs/getting-started/intro) (MCP).
+Two emerging standards are especially relevant: [Agent Skills](https://agentskills.io/home) and the [Model Context Protocol](https://modelcontextprotocol.io/docs/getting-started/intro) (MCP).
 They solve related but different problems.
 
 ## Agent Skills
 
 Agent Skills are lightweight, portable bundles of instructions that teach an agent how to perform a particular task.
-An Agent Skill is usually a directory containing a required `SKILL.md` file, with optional scripts, references, templates or other resources.
+An Agent Skill is usually a directory containing a required `SKILL.md` file, with optional subdirectories for scripts, references, or other resources.
 At minimum, `SKILL.md` contains a `name`, a `description` and instructions that explain when and how the skill should be used.
 
 A common project-level layout is:
@@ -25,11 +25,11 @@ A common project-level layout is:
 
 Skills are useful when an agent needs procedural knowledge: how to follow a lab's data-cleaning checklist, how to prepare a manuscript according to a journal style, or how to run a recurring quality-control workflow.
 They are designed around progressive disclosure: agents first see only a skill's name and description, and load the full instructions only when the task requires it.
-This helps reduce context use and makes skills relatively token-efficient.
+This helps reduce context use and makes Skills relatively token-efficient.
 
-Skills are best suited for reusable guidance, local workflows and lightweight automation.
-They can include executable scripts, but they are not, by themselves, an enterprise identity or access-management system.
-If a skill needs to interact with sensitive services, the surrounding agent environment still needs appropriate authentication, permissions, logging and review.
+Skills are best suited for reusable guidance and lightweight automation.
+While they can include executable scripts, they do not provide an access-management system, instead relying on tokens saved locally.
+If a skill needs to interact with services, the surrounding agent environment still needs appropriate authentication, permissions, etc.
 
 ## Model Context Protocol
 
@@ -39,10 +39,10 @@ For example, an MCP server might let an agent query a database, read documents f
 
 MCP is useful when the agent needs a structured connection to an external provider or system.
 Unlike a skill, which primarily tells an agent how to do something, an MCP server gives the agent a defined interface for accessing something.
-MCP also includes an [authorisation framework](https://modelcontextprotocol.io/docs/tutorials/security/authorization) for HTTP-based transports, supporting patterns such as OAuth-based access to protected resources.
+MCP also includes an [authorization framework](https://modelcontextprotocol.io/docs/tutorials/security/authorization) for HTTP-based transports, supporting patterns such as OAuth-based access to protected resources.
 This can make MCP more suitable for shared services, enterprise environments and cases where identity, permissions and audit trails matter.
 
-However, MCP authorisation is not automatic.
+However, MCP authorization is not automatic.
 Implementers still need to configure servers and clients securely, minimise scopes, validate tokens and avoid unsafe patterns such as token passthrough.
 
 ## Choosing Between Skills and MCP
@@ -50,19 +50,18 @@ Implementers still need to configure servers and clients securely, minimise scop
 Skills and MCPs are complementary.
 
 Use a Skill when you want to package reusable expertise, instructions, examples or small scripts for an agent.
-A skill might describe how to run a reproducibility checklist, prepare FAIR metadata, format a data dictionary or follow a project's contribution workflow.
+A skill might describe how to run a reproducibility checklist, prepare metadata or follow a project's contribution workflow.
 
-Use an MCP server when the agent needs controlled access to an external system: a database, cloud storage provider, calendar, issue tracker, institutional repository or another service where authentication and permissions matter.
+Use an MCP server when the agent needs controlled access to an external system: a database, cloud storage provider, calendar, issue tracker or another service where authentication and permissions matter.
 
 In practice, the two can work together.
-A skill might teach the agent the correct workflow for depositing a dataset, while an MCP server provides authenticated access to the repository where the dataset will be deposited.
 
 ## Security and Trust
 
 Both Skills and MCP servers should be treated as part of the software supply chain.
 They may contain instructions, code, links, dependencies or service connections that affect what an agent can do.
 Guidance from the MCP security documentation highlights risks such as prompt injection, tool poisoning, excessive permissions and token misuse.
-Similar caution is appropriate for skills, especially when they include scripts or instructions from untrusted sources.
+Similar caution is appropriate for Skills, especially when they include scripts or instructions from untrusted sources.
 
 Good practice includes:
 
@@ -71,8 +70,7 @@ Good practice includes:
 - run code with the least privileges needed;
 - use scoped credentials rather than broad tokens;
 - require human confirmation for sensitive actions;
-- monitor logs and audit trails where services or personal data are involved;
-- be especially careful with content from untrusted repositories, websites or tool outputs, as these may contain prompt-injection attempts.
+- be especially careful with content from untrusted sources, as these may contain prompt-injection attempts.
 
 For research projects, these standards are most valuable when they are version-controlled, documented, reviewed and maintained like other research software infrastructure.
 
@@ -82,4 +80,4 @@ For research projects, these standards are most valuable when they are version-c
 - [Agent Skills client implementation guidance](https://agentskills.io/client-implementation/adding-skills-support)
 - [Model Context Protocol documentation](https://modelcontextprotocol.io/docs/getting-started/intro)
 - [MCP security best practices](https://modelcontextprotocol.io/docs/tutorials/security/security_best_practices)
-- [MCP authorisation guide](https://modelcontextprotocol.io/docs/tutorials/security/authorization)
+- [MCP authorization guide](https://modelcontextprotocol.io/docs/tutorials/security/authorization)
