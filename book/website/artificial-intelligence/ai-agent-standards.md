@@ -9,7 +9,7 @@ They solve related but different problems.
 
 Agent Skills are lightweight, portable bundles of instructions that teach an agent how to perform a particular task.
 An Agent Skill is usually a directory containing a required `SKILL.md` file, with optional subdirectories for scripts, references, or other resources.
-At minimum, `SKILL.md` contains a `name`, a `description` and instructions that explain when and how the skill should be used.
+At minimum, `SKILL.md` contains a `name`, a `description` and instructions that explain when and how the Skill should be used.
 
 A common project-level layout is:
 
@@ -24,12 +24,12 @@ A common project-level layout is:
 ```
 
 Skills are useful when an agent needs procedural knowledge: how to follow a lab's data-cleaning checklist, how to prepare a manuscript according to a journal style, or how to run a recurring quality-control workflow.
-They are designed around progressive disclosure: agents first see only a skill's name and description, and load the full instructions only when the task requires it.
+They are designed around progressive disclosure: agents first see only a Skill's name and description, and load the full instructions only when the task requires it.
 This helps reduce context use and makes Skills relatively token-efficient.
 
 Skills are best suited for reusable guidance and lightweight automation.
 While they can include executable scripts, they do not provide an access-management system, instead relying on tokens saved locally.
-If a skill needs to interact with services, the surrounding agent environment still needs appropriate authentication, permissions, etc.
+If a Skill needs to interact with services, the surrounding agent environment still needs appropriate authentication, permissions, etc.
 
 ## Model Context Protocol
 
@@ -38,7 +38,7 @@ MCP servers can expose tools, resources, prompts and workflows to an AI client.
 For example, an MCP server might let an agent query a database, read documents from a project repository, search an institutional knowledge base or call a service API.
 
 MCP is useful when the agent needs a structured connection to an external provider or system.
-Unlike a skill, which primarily tells an agent how to do something, an MCP server gives the agent a defined interface for accessing something.
+Unlike a Skill, which primarily tells an agent how to do something, an MCP server gives the agent a defined interface for accessing something.
 MCP also includes an [authorization framework](https://modelcontextprotocol.io/docs/tutorials/security/authorization) for HTTP-based transports, supporting patterns such as OAuth-based access to protected resources.
 This can make MCP more suitable for shared services, enterprise environments and cases where identity, permissions and audit trails matter.
 
@@ -50,7 +50,7 @@ Implementers still need to configure servers and clients securely, minimise scop
 Skills and MCPs are complementary.
 
 Use a Skill when you want to package reusable expertise, instructions, examples or small scripts for an agent.
-A skill might describe how to run a reproducibility checklist, prepare metadata or follow a project's contribution workflow.
+A Skill might describe how to run a reproducibility checklist, prepare metadata or follow a project's contribution workflow.
 
 Use an MCP server when the agent needs controlled access to an external system: a database, cloud storage provider, calendar, issue tracker or another service where authentication and permissions matter.
 
