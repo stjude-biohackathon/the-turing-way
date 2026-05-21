@@ -1,0 +1,16 @@
+services:
+  ttw-server:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # A token raises GitHub's rate limit from 60 to 5 000 requests per hour,
+      # which matters when the server preloads all chapter content on startup.
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
