@@ -17,8 +17,8 @@ upgrade: ## Upgrade python packages and update the requirements files
 	pip-sync
 
 serve: ## Start a webserver serving the book locally
-	cd website && jupyter-book start
-
+	cd website && python -m jupyter_book start
+	
 book: ## Build the book and export as HTML
 	cd website && jupyter-book build --html
 	# Temporary hack to remove unused thebe JS
