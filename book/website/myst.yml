@@ -473,6 +473,11 @@ project:
               title: Validation and Generalisability
             - file: project-design/risks-of-bias/discrimination-bias.md
               title: Discrimination and Bias
+    # ===== Guide for Artificial Intelligence ========================================
+    - file: artificial-intelligence/artificial-intelligence.md
+      children:
+        - file: artificial-intelligence/ai-agent-standards.md
+          title: Standards for Extending AI Agents
     # ===== Guide for Communication ========================================
     - file: communication/communication.md
       children:
