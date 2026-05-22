@@ -477,7 +477,7 @@ project:
     - file: artificial-intelligence/artificial-intelligence.md
       children:
         - file: artificial-intelligence/ai-agent-standards.md
-          title: Standards for Extending AI Agents
+          title: Standards for AI Agents
     # ===== Guide for Communication ========================================
     - file: communication/communication.md
       children:

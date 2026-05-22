@@ -1,7 +1,11 @@
 (ai-agent-standards)=
-# Standards for Extending AI Agents
+# Standards for AI Agents
 
-AI agents can be extended in different ways.
+An AI agent is a software system that can use a large language model (LLM) to interpret a task, decide what steps to take, and act through available tools or services.
+In a research context, an agent might help draft documentation, inspect and write code, run tests, query project files, or coordinate steps in a workflow.
+Because agents can act on behalf of a user, their instructions, permissions, and connections to other systems should be carefully considered.
+
+AI agents can be configured in different ways.
 Two emerging standards are especially relevant: [Agent Skills](https://agentskills.io/home) and the [Model Context Protocol](https://modelcontextprotocol.io/docs/getting-started/intro) (MCP).
 They solve related but different problems.
 
@@ -10,6 +14,29 @@ They solve related but different problems.
 Agent Skills are lightweight, portable bundles of instructions that teach an agent how to perform a particular task.
 An Agent Skill is usually a directory containing a required `SKILL.md` file, with optional subdirectories for scripts, references, or other resources.
 At minimum, `SKILL.md` contains a `name`, a `description` and instructions that explain when and how the Skill should be used.
+
+A basic `SKILL.md` might look like this:
+
+```markdown
+---
+name: metadata-check
+description: Check whether a dataset has the core metadata needed before sharing.
+---
+
+Use this Skill when reviewing a dataset for sharing or archiving.
+
+Check that the dataset includes:
+
+- a clear title;
+- creator names and affiliations;
+- a short description of the data;
+- license information;
+- information about how the data were collected;
+- any access restrictions or sensitivity concerns.
+
+Report missing items as a checklist.
+Do not invent metadata values.
+```
 
 A common project-level layout is:
 
