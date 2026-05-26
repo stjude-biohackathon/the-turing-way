@@ -55,7 +55,16 @@ COPY pyproject.toml .
 # TTW: "follow best-practice by...cleaning up the apt-cache...further reduce the
 # size of Debian or Ubuntu images."
 # See: https://book.the-turing-way.org/reproducible-research/renv/renv-containers#rr-renv-containers-dockerfiles
-RUN pip install --no-cache-dir -e .
+#
+# Dependencies are installed before the source tree is copied so that Docker can
+# reuse this cached layer on rebuilds where only application code has changed.
+# tomllib is part of the Python 3.11 standard library, so no extra install is
+# needed to read pyproject.toml — this avoids duplicating the dependency list
+# inside the Dockerfile itself.
+RUN python -c \
+    "import tomllib, subprocess, sys; \
+     deps = tomllib.load(open('pyproject.toml','rb'))['project']['dependencies']; \
+     subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--no-cache-dir'] + deps)"
 
 # =================================================================================
 # Application source
@@ -69,9 +78,13 @@ RUN pip install --no-cache-dir -e .
 # as the term COPY is more explicit about what is being done."
 # See: https://book.the-turing-way.org/reproducible-research/renv/renv-containers#rr-renv-containers-dockerfiles
 #
-# Source is copied after the install step so that editing application code does not
-# invalidate the cached dependency layer above.
+# Source is copied after the dependency install so that editing application code does
+# not invalidate the cached dependency layer above.
 COPY src/ src/
+
+# Install the package itself without re-downloading its dependencies (already present
+# from the layer above). --no-deps keeps this step fast and idempotent.
+RUN pip install --no-cache-dir --no-deps .
 
 # =================================================================================
 # Runtime configuration

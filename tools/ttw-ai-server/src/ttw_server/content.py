@@ -52,7 +52,7 @@ class ContentStore:
         self._client = httpx.AsyncClient(headers=headers, timeout=30.0)
         self._chapters: list[Chapter] = []
         self._content: dict[str, str] = {}       # slug → raw Markdown text
-        self._refreshed_at: float = 0.0          # monotonic timestamp of last TOC fetch
+        self._refreshed_at: float = float("-inf")  # force a fetch on the first call
         self._bm25: Optional[BM25Okapi] = None   # rebuilt lazily whenever content changes
         self._bm25_slugs: list[str] = []         # parallel to the BM25 corpus rows
         self._index_dirty: bool = True
@@ -176,7 +176,7 @@ def _walk_toc(entry: dict, out: list[Chapter], depth: int) -> None:
             depth=depth,
         ))
 
-    for child in entry.get("children", []):
+    for child in entry.get("children") or []:
         _walk_toc(child, out, depth=depth + 1)
 
 
