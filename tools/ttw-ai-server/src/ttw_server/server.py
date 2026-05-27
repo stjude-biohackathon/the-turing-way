@@ -18,7 +18,8 @@ mcp = FastMCP(
         "ethical, and collaborative data science. "
         "Use list_chapters to explore available topics, "
         "search_turing_way to find chapters by keyword, "
-        "and get_chapter to read a specific chapter in full."
+        "get_chapter to read a specific chapter in full (commit metadata is appended automatically), "
+        "and get_recent_changes to see what has been edited recently across the book or within a single chapter."
     ),
 )
 
@@ -53,13 +54,46 @@ async def search_turing_way(query: str) -> str:
 async def get_chapter(slug: str) -> str:
     """Retrieve the full Markdown source of a Turing Way chapter.
 
+    A footer with the most recent commit (date, author, message, link) is
+    appended automatically so the caller knows how current the content is.
+
     Args:
         slug: Chapter identifier from list_chapters, such as "reproducible-research/overview".
     """
     content = await _store.get_chapter(slug)
     if content is None:
         return f"Chapter '{slug}' was not found. Use list_chapters to browse available slugs."
+    commit = await _store.get_chapter_commit(slug)
+    if commit:
+        content += (
+            f"\n\n---\n"
+            f"*Last updated: {commit.date} — "
+            f"[{commit.sha}]({commit.url}) "
+            f"by {commit.author}: {commit.message}*"
+        )
     return content
+
+
+@mcp.tool()
+async def get_recent_changes(limit: int = 10, slug: str = "") -> str:
+    """Return recent commits to The Turing Way book content.
+
+    Args:
+        limit: Number of commits to return (1–30, default 10).
+        slug:  Optional chapter slug (from list_chapters) to scope results to one
+               chapter. Leave empty to see recent changes across the whole book.
+    """
+    limit = max(1, min(limit, 30))
+    commits = await _store.get_recent_changes(limit=limit, slug=slug or None)
+    if not commits:
+        return "No recent commits found."
+    scope = f"chapter `{slug}`" if slug else "the whole book"
+    header = f"**{len(commits)} recent commit(s) to {scope}:**\n"
+    lines = [
+        f"- [{c.sha}]({c.url}) {c.date} **{c.author}**: {c.message}"
+        for c in commits
+    ]
+    return header + "\n".join(lines)
 
 
 def run() -> None:

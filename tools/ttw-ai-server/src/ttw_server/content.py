@@ -20,8 +20,15 @@ _RAW_BASE = (
 )
 _MYST_YML_URL = f"{_RAW_BASE}/myst.yml"
 
+# GitHub REST API base for the upstream repository.
+_API_BASE = "https://api.github.com/repos/the-turing-way/the-turing-way"
+
 # One refresh per day keeps the chapter list current without hammering GitHub.
 _TOC_TTL_SECONDS: float = 86_400.0
+
+# Commit metadata is refreshed hourly — frequent enough to catch recent edits,
+# infrequent enough to stay well within the authenticated rate limit.
+_COMMIT_TTL_SECONDS: float = 3_600.0
 
 # Spacing between background fetches avoids saturating GitHub's rate limiter.
 _PRELOAD_INTERVAL_SECONDS: float = 0.2
@@ -34,6 +41,15 @@ class Chapter:
     slug: str   # File path without the .md suffix, used as a stable public identifier
     guide: str  # Top-level section name derived from the first path component
     depth: int  # Nesting level in the TOC; 0 = guide root, 1 = chapter, 2 = subchapter
+
+
+@dataclass(frozen=True)
+class CommitInfo:
+    sha: str      # Short (7-char) commit hash
+    message: str  # First line of the commit message
+    author: str   # Display name of the commit author
+    date: str     # ISO-8601 date, e.g. "2024-03-15"
+    url: str      # Link to the commit on GitHub
 
 
 @dataclass(frozen=True)
@@ -56,6 +72,11 @@ class ContentStore:
         self._bm25: Optional[BM25Okapi] = None   # rebuilt lazily whenever content changes
         self._bm25_slugs: list[str] = []         # parallel to the BM25 corpus rows
         self._index_dirty: bool = True
+        # Commit metadata caches — keyed by slug (chapter) or a path string (recent changes).
+        self._chapter_commit_cache: dict[str, CommitInfo] = {}
+        self._chapter_commit_fetched_at: dict[str, float] = {}
+        self._recent_commit_cache: dict[str, list[CommitInfo]] = {}
+        self._recent_commit_fetched_at: dict[str, float] = {}
 
     async def close(self) -> None:
         await self._client.aclose()
@@ -109,6 +130,52 @@ class ContentStore:
                 # Spacing requests avoids saturating GitHub's rate limiter.
                 await asyncio.sleep(_PRELOAD_INTERVAL_SECONDS)
 
+    async def get_chapter_commit(self, slug: str) -> Optional[CommitInfo]:
+        """Return the most recent commit that touched this chapter (1-hour cache)."""
+        await self._ensure_toc()
+        chapter = self._find_chapter(slug)
+        if chapter is None:
+            return None
+        fetched_at = self._chapter_commit_fetched_at.get(slug, float("-inf"))
+        if time.monotonic() - fetched_at < _COMMIT_TTL_SECONDS and slug in self._chapter_commit_cache:
+            return self._chapter_commit_cache[slug]
+        commits = await self._fetch_commits(f"book/website/{chapter.file}", limit=1)
+        if not commits:
+            return None
+        info = _parse_commit(commits[0])
+        self._chapter_commit_cache[slug] = info
+        self._chapter_commit_fetched_at[slug] = time.monotonic()
+        return info
+
+    async def get_recent_changes(
+        self, limit: int = 10, slug: Optional[str] = None
+    ) -> list[CommitInfo]:
+        """Return recent commits to book content, optionally scoped to one chapter.
+
+        When slug is None the query covers the entire book/website tree.
+        Results are cached for one hour per (slug, limit) combination.
+        """
+        if slug is not None:
+            await self._ensure_toc()
+            chapter = self._find_chapter(slug)
+            if chapter is None:
+                return []
+            api_path = f"book/website/{chapter.file}"
+        else:
+            api_path = "book/website"
+        cache_key = f"{api_path}:{limit}"
+        fetched_at = self._recent_commit_fetched_at.get(cache_key, float("-inf"))
+        if (
+            time.monotonic() - fetched_at < _COMMIT_TTL_SECONDS
+            and cache_key in self._recent_commit_cache
+        ):
+            return self._recent_commit_cache[cache_key]
+        commits = await self._fetch_commits(api_path, limit=limit)
+        result = [_parse_commit(c) for c in commits]
+        self._recent_commit_cache[cache_key] = result
+        self._recent_commit_fetched_at[cache_key] = time.monotonic()
+        return result
+
     # ── Internal helpers ────────────────────────────────────────────────────────
 
     async def _ensure_toc(self) -> None:
@@ -142,6 +209,22 @@ class ContentStore:
             return response.text
         except httpx.HTTPStatusError:
             return None
+
+    async def _fetch_commits(self, path: str, limit: int) -> list[dict]:
+        """Call the GitHub Commits API and return raw commit dicts.
+
+        path is relative to the repository root, e.g. "book/website/reproducible-research/vcs.md".
+        limit is capped at 100 (GitHub's per_page maximum).
+        Returns an empty list on any error so callers can degrade gracefully.
+        """
+        url = f"{_API_BASE}/commits"
+        params: dict = {"path": path, "per_page": min(limit, 100)}
+        try:
+            response = await self._client.get(url, params=params)
+            response.raise_for_status()
+            return response.json()
+        except Exception:
+            return []
 
     def _find_chapter(self, slug: str) -> Optional[Chapter]:
         # Linear scan is acceptable; the chapter list is at most a few hundred entries.
@@ -200,6 +283,19 @@ def _build_document(chapter: Chapter, content: Optional[str]) -> list[str]:
     title_tokens = _tokenize(chapter.title) * 3
     body = content if content else chapter.slug
     return title_tokens + _tokenize(body)
+
+
+def _parse_commit(data: dict) -> CommitInfo:
+    """Extract the fields we care about from a raw GitHub Commits API response dict."""
+    commit = data.get("commit", {})
+    author = commit.get("author", {})
+    return CommitInfo(
+        sha=data.get("sha", "")[:7],
+        message=commit.get("message", "").split("\n")[0],
+        author=author.get("name", "unknown"),
+        date=author.get("date", "")[:10],  # keep only the YYYY-MM-DD part
+        url=data.get("html_url", ""),
+    )
 
 
 def _best_excerpt(text: str, words: list[str]) -> Optional[str]:
